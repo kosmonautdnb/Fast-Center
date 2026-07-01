@@ -41,6 +41,9 @@
 double pointX[POINTCOUNT];
 double pointY[POINTCOUNT];
 
+double point2X[POINTCOUNT];
+double point2Y[POINTCOUNT];
+
 unsigned char screen[640/8*480*4];
 
 void setBiosGraphicsMode(unsigned short mode) {
@@ -83,7 +86,7 @@ void setPixel(int x, int y, int col) {
   }
 }
 
-double kx[2],ky[2];
+double kx[4],ky[4];
 
 void initPoints() {
   if (false) {
@@ -99,13 +102,18 @@ void initPoints() {
     }
   } else {
     // anscheinend bekommt man so den mittelpunkt einer 3dimensionalen punktwolke (alles in 2d)
-    double xadd = 50*1;
-    double yadd = 100*0;
+    double xadd = 30*1;
+    double yadd = 30*1;
     double angle = 40*3.14159/180.0;
+    double angle2 = 5*3.14159/180.0;
     for (int i = 0; i < POINTCOUNT; i++) {
-      if (i >= POINTCOUNT/2) angle = -angle;
+      if (i == POINTCOUNT/2) angle = -angle;
       double x = (rand() % 101)-50;
       double y = (rand() % 101)-50;
+      //double d = rand() % 50;
+      //double a = (rand() & 1023)*3.1415*2/1024;
+      //x = sin(a)*d;
+      //y = cos(a)*d;
       double z = 100 + (rand() % 1001);
 /*      int k = (i / 8)*1+10;
       if ((i & 1)==0) x = -k;
@@ -120,16 +128,29 @@ void initPoints() {
         z = 1000*0.5+100;
         //z = (POINTCOUNT/8+10)/2*2+100;
       }
+      if (i == 1 || i == POINTCOUNT/2+1) {
+        x = 0;
+        y = 0;
+        z = 10000+100;
+        //z = (POINTCOUNT/8+10)/2*2+100;
+      }
       double x2 = cos(angle)*x - sin(angle)*z;
       double z2 = sin(angle)*x + cos(angle)*z;
       x = x2;
       z = z2;
+
+      double y3 = cos(angle2)*y + sin(angle2)*x;
+      double x3 = -sin(angle2)*y + cos(angle2)*x;
+      y = y3;
+      x = x3;
+
       x += xadd;
       y += yadd;
       pointX[i] = x*220/z + 640/2;
       pointY[i] = y*220/z + 480/2;
       //if (i == 0) {kx = pointX[i] + xadd*220/z; ky = pointY[i] + yadd*220/z;} // that +xadd and +yadd is somehow strange
       if (i == 0 || i == POINTCOUNT/2) {kx[i*2/POINTCOUNT] = pointX[i]; ky[i*2/POINTCOUNT] = pointY[i];} // that +xadd and +yadd is somehow strange
+      if (i == 1 || i == POINTCOUNT/2 + 1) {kx[(i-1)*2/POINTCOUNT+2] = pointX[i]; ky[(i-1)*2/POINTCOUNT+2] = pointY[i];} // that +xadd and +yadd is somehow strange
     }
   }
 }
@@ -172,7 +193,7 @@ int main(int argc, const char *argv[]) {
   int frameCount = 0;
   while(1) {
     paintPoint(pX, pY, (frameCount/16) & 15);
-    for (int u = 0; u < 2; u++) for (int j = -10; j <= 10; j++) {paintPoint(kx[u]+j, ky[u], 15);paintPoint(kx[u], ky[u]+j, 15);}
+    for (int u = 0; u < 4; u++) for (int j = -10; j <= 10; j++) {paintPoint(kx[u]+j, ky[u], 15);paintPoint(kx[u], ky[u]+j, 15);}
     static double l = 1;
     static double r = 1;
     w = 0; xp = 0; yp = 0;
@@ -197,6 +218,75 @@ int main(int argc, const char *argv[]) {
       if (k == 'a') break;
       if (k == 'b') l++;
       if (k == 'c') r*=-1;
+      if (k == 'd') {
+        double cx2 = pX, cy2 = pY;
+        int ri = 0;
+        for (double a = 0; a < 360.0; a += 45.0/8.0) {
+          double xd3 = sin(a*3.14159/180.0);
+          double yd3 = cos(a*3.14159/180.0);
+          double w,xp,yp,pX,pY;
+          w = 0; xp = 0; yp = 0;
+          pX = cx2; pY = cy2;
+          //double s2 = 0.3; int steps = 250; double t = 10;
+          //double s2 = 0.1; int steps = 10; double t = 1;
+          //double s2 = 0.01; int steps = 1; double t = 1;
+          double s2 = 0.1; int steps = 1; double t = 0.1;
+          for (int l = 0; l < steps; l++) {
+            for (int i = 0; i < POINTCOUNT; i++) {
+              double xd2 = pointX[i] - cx2;
+              double yd2 = pointY[i] - cy2;
+              double d2 = xd3*xd2+yd3*yd2;
+              if (d2 >= 0) {
+                double xd = pointX[i] - pX;
+                double yd = pointY[i] - pY;
+                double d = sqrt(xd*xd+yd*yd);
+                if (d < 200) {
+                  xd = xd / (fabs(xd)+l);
+                  yd = yd / (fabs(yd)+l);
+                  xp += xd; yp += yd; w++;
+                }
+              }
+            }
+            if (w != 0) {xp /= w; yp /= w;}
+            pX += xp*t; pY += yp*t;
+          }
+          double t2 = 10.0*250/steps*s2;
+          point2X[ri] = (pX-cx2)*t2+cx2;
+          point2Y[ri] = (pY-cy2)*t2+cy2;
+          paintPoint(point2X[ri], point2Y[ri], 15);
+          ri++;
+        }
+/*
+        int found = 0;
+        double ld = 0;
+        for (int n = 1; n < ri-1; n++) {
+          double dx = point2X[n+1] - point2X[n-1];
+          double dy = point2Y[n+1] - point2Y[n-1];
+          double d = dx*dx+dy*dy;
+          if (n == 1 || d < ld) {
+            ld = d;
+            found = n;
+          }
+        }
+
+        double centerX = point2X[found];
+        double centerY = point2Y[found];
+
+        double x = cx2;
+        double y = cy2;
+        double xa = (centerX-cx2)/100.0;
+        double ya = (centerY-cy2)/100.0;
+        int steps = 5000;
+        x -= xa * steps/2;
+        y -= ya * steps/2;
+        for (int m = 0; m < steps; m++) {
+          paintPoint(x, y, 2);
+          x += xa;
+          y += ya;
+        }
+*/
+      }
+
       pX = rand() % 640;
       pY = rand() % 480;
     }
