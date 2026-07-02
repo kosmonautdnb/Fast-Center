@@ -89,17 +89,34 @@ void setPixel(int x, int y, int col) {
 double kx[4],ky[4];
 
 void initPoints() {
-  if (false) {
-    for (int i = 0; i < POINTCOUNT; i+=CLUSTERSIZE) {
-      int cx = rand() % 640;
-      int cy = rand() % 480;
-      cx *= 0.5;
-      cy *= 0.5;
-      for (int j = 0; j < CLUSTERSIZE; j++) {
-        pointX[i+j] = cx + (rand() % 50)-25;
-        pointY[i+j] = cy + (rand() % 50)-25;
+  bool clusters = false;
+  if (clusters) {
+    double cx,cy,cz;
+    double mX=0,mY=0,mZ=0,mW=0;
+    double addX = 50;
+    double addY = 50;
+    for (int i = 0; i < POINTCOUNT; i++) {
+      if ((i % CLUSTERSIZE) == 0) {
+        cx = (rand() % 101)-50 + addX;
+        cy = (rand() % 101)-50 + addY;
+        cz = 100 + (rand() % 1001);
       }
+      double x = cx+(rand() % 20)-10;
+      double y = cy+(rand() % 20)-10;
+      double z = cz+(rand() % 20)-10;
+      mX += x;
+      mY += y;
+      mZ += z;
+      mW++;
+      pointX[i] = x*220/z + 640/2;
+      pointY[i] = y*220/z + 480/2;
     }
+    mX /= mW;
+    mY /= mW;
+    mZ /= mW;
+    mX = mX*220/mZ + 640/2;
+    mY = mY*220/mZ + 480/2;
+    for (int u = 0; u < 4; u++) {kx[u] = mX; ky[u] = mY;}
   } else {
     // anscheinend bekommt man so den mittelpunkt einer 3dimensionalen punktwolke (alles in 2d)
     double xadd = 30*1;
