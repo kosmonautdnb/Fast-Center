@@ -73,6 +73,26 @@ void clearScreenRam() {
   memset(screen,0,sizeof(screen));
 }
 
+void setPixel0(int x, int y, int col) {
+  if ((unsigned int)x < 640 && (unsigned int)y < 480) {
+    for (int j = 0; j < 4; j++) {
+      outp(0x3c4, 2);
+      outp(0x3c5, 1<<j);
+      int b = col & (1<<j) ? 1 : 0;
+      if (b) screen[y*(640/8)+x/8+j*640/8*480] |= 1<<(7-(x & 7));
+      if (!b) screen[y*(640/8)+x/8+j*640/8*480] &= 255-(1<<(7-(x & 7)));
+    }
+  }
+}
+
+void setPixel2(int x, int y, int col) {
+  for (int y2 = -1; y2 <= 1; y2++) {
+    for (int x2 = -1; x2 <= 1; x2++) {
+      setPixel0(x+x2,y+y2,col);
+    }
+  }
+}
+
 void setPixel(int x, int y, int col) {
   if ((unsigned int)x < 640 && (unsigned int)y < 480) {
     for (int j = 0; j < 4; j++) {
@@ -308,6 +328,90 @@ int main(int argc, const char *argv[]) {
       pY = rand() % 480;
     }
     frameCount++;
+  }
+
+
+  while(!kbhit()) {
+    double pX = 640/2, pY = 480/2;
+    memset(screen,0,sizeof(screen));
+
+    srand(0);
+    static float angle2 = 0; angle2 += 0.1;
+    static float angle = 0; angle += 0.04;
+    double mX = 0, mY = 0, mZ = 0, mW = 0;
+    double cx = 0, cy = 0, cz = 0;
+    {for (int i = 0; i < POINTCOUNT; i++) {
+      if ((i % CLUSTERSIZE) == 0) {
+        cx = (rand() % 101)-50;
+        cy = (rand() % 101)-50;
+        cz = 100 + (rand() % 1001);
+      }
+      double x = cx+((rand() % 20)-10)*2;
+      double y = cy+((rand() % 20)-10)*2;
+      double z = cz+((rand() % 20)-10)*2;
+      x += 100;
+      y += 100;
+      z += 100;
+
+      z -= 600;
+      double x2 = cos(angle)*x - sin(angle)*z;
+      double z2 = sin(angle)*x + cos(angle)*z;
+      x = x2;
+      z = z2;
+      z += 600;
+      if (z < 100) z = 100;
+
+      double y3 = cos(angle2)*y + sin(angle2)*x;
+      double x3 = -sin(angle2)*y + cos(angle2)*x;
+      y = y3;
+      x = x3;
+
+      mX += x;
+      mY += y;
+      mZ += z;
+      mW++;
+      pointX[i] = x*220/z + 640/2;
+      pointY[i] = y*220/z + 480/2;
+    }}
+    mX /= mW;
+    mY /= mW;
+    mZ /= mW;
+    mX = mX*220/mZ + 640/2;
+    mY = mY*220/mZ + 480/2;
+
+    {for (int i = 0; i < POINTCOUNT; i++) {
+      setPixel0(pointX[i], pointY[i], rand() & 15);
+    }}
+
+    {for (int j = -10; j <= 10; j++) {setPixel2(mX+j, mY, 4);setPixel2(mX, mY+j, 4);}}
+
+    {for (int j = 0; j < 1000; j++) {
+      w = 0; xp = 0; yp = 0;
+      for (int i = 0; i < POINTCOUNT; i++) {
+        double xd = pointX[i] - pX;
+        double yd = pointY[i] - pY;
+        double d = sqrt(xd*xd+yd*yd);
+        xd = xd / (fabs(xd)+1);
+        yd = yd / (fabs(yd)+1);
+        xp += xd; yp += yd; w++;
+      }
+      if (w != 0) {xp /= w; yp /= w;}
+      pX += xp; pY += yp;
+      setPixel0(pX,pY,15);
+    }}
+
+    {for (int j = -10; j <= 10; j++) {setPixel2(pX+j, pY-j, 15);setPixel2(pX+j, pY+j, 15);}}
+
+    for (int y = 0; y < 480; y++) {
+      for (int j = 0; j < 4; j++) {
+        outp(0x3c4, 2);
+        outp(0x3c5, 1<<j);
+        for (int x = 0; x < 640; x++) {
+          *(unsigned char *)(0xa0000+y*(640/8)+x/8) = screen[y*(640/8)+x/8+j*640/8*480];
+        }
+      }
+    }
+
   }
 
   setBiosGraphicsMode(mode);
