@@ -206,6 +206,10 @@ void paintPoint(int px, int py, int c) {
   }
 }
 
+float frand() {
+  return (float)rand() / RAND_MAX;
+}
+
 int main(int argc, const char *argv[]) {
 
   unsigned short mode = getBiosGraphicsMode();
@@ -340,25 +344,30 @@ int main(int argc, const char *argv[]) {
     static float angle = 0; angle += 0.04;
     double mX = 0, mY = 0, mZ = 0, mW = 0;
     double cx = 0, cy = 0, cz = 0;
+    double cX = 0, cY = 0;
+    double sx = 1, sy = 1, sz = 1;
     {for (int i = 0; i < POINTCOUNT; i++) {
       if ((i % CLUSTERSIZE) == 0) {
-        cx = (rand() % 101)-50;
-        cy = (rand() % 101)-50;
-        cz = 100 + (rand() % 1001);
+        cx = frand()*100-50; // the algorithm works better with sort of quantized (to a grid) points
+        cy = frand()*100-50;
+        cz = 100 + frand()*1001;
+        sx = frand()*2+1;
+        sy = frand()*2+1;
+        sz = frand()*2+1;
       }
-      double x = cx+((rand() % 20)-10)*2;
-      double y = cy+((rand() % 20)-10)*2;
-      double z = cz+((rand() % 20)-10)*2;
+      double x = cx+((frand() * 20)-10)*sx;
+      double y = cy+((frand() * 20)-10)*sy;
+      double z = cz+((frand() * 20)-10)*sz;
       x += 100;
       y += 100;
       z += 100;
 
-      z -= 600;
+      z -= 550;
       double x2 = cos(angle)*x - sin(angle)*z;
       double z2 = sin(angle)*x + cos(angle)*z;
       x = x2;
       z = z2;
-      z += 600;
+      z += 550;
       if (z < 100) z = 100;
 
       double y3 = cos(angle2)*y + sin(angle2)*x;
@@ -372,25 +381,29 @@ int main(int argc, const char *argv[]) {
       mW++;
       pointX[i] = x*220/z + 640/2;
       pointY[i] = y*220/z + 480/2;
+      cX += pointX[i];
+      cY += pointY[i];
     }}
     mX /= mW;
     mY /= mW;
     mZ /= mW;
     mX = mX*220/mZ + 640/2;
     mY = mY*220/mZ + 480/2;
+    cX /= mW;
+    cY /= mW;
 
     {for (int i = 0; i < POINTCOUNT; i++) {
       setPixel0(pointX[i], pointY[i], rand() & 15);
     }}
 
-    {for (int j = -10; j <= 10; j++) {setPixel2(mX+j, mY, 4);setPixel2(mX, mY+j, 4);}}
+    {for (int j = -10; j <= 10; j++) {setPixel2(cX+j, cY, 1);setPixel2(cX, cY+j, 1);}} // 2d average
+    {for (int j = -10; j <= 10; j++) {setPixel2(mX+j, mY, 4);setPixel2(mX, mY+j, 4);}} // 3d center
 
     {for (int j = 0; j < 1000; j++) {
       w = 0; xp = 0; yp = 0;
       for (int i = 0; i < POINTCOUNT; i++) {
         double xd = pointX[i] - pX;
         double yd = pointY[i] - pY;
-        double d = sqrt(xd*xd+yd*yd);
         xd = xd / (fabs(xd)+1);
         yd = yd / (fabs(yd)+1);
         xp += xd; yp += yd; w++;
