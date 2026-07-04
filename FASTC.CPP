@@ -1,4 +1,3 @@
-
 /*
   MIT License
 
@@ -422,6 +421,7 @@ int main(int argc, const char *argv[]) {
     }}
 
     // this paints the "Sichtachse" notice that the inferior and slower "sqrt()" function is used here
+    double aa = 0;
     if (true) {
       double cx2 = pX, cy2 = pY;
       double ld = 0, ax = 0, ay = 0;
@@ -449,6 +449,7 @@ int main(int argc, const char *argv[]) {
         if (l > ld) {
           ax = xp;
           ay = yp;
+          aa = a;
           ld = l;
         }
       }
@@ -467,10 +468,10 @@ int main(int argc, const char *argv[]) {
           xp += xd; yp += yd; w++;
         }
         if (w != 0) {xp /= w; yp /= w;}
-
         double k = sqrt(xp*xp+yp*yp);
         if (j < 0) {k *= -1;}
-        setPixel0(cx2,cy2,(int)(k*100) & 15);
+
+        setPixel0(cx2,cy2,((int)(k*100) & 1)*7+8);
       }
     }
 
@@ -507,10 +508,16 @@ int main(int argc, const char *argv[]) {
         }
         if (w != 0) {xp /= w; yp /= w;}
         double l = sqrt(xp * xp + yp * yp);
-        setPixel(x,y,(int)(l*100) & 15);
+        double a = atan2(xp,yp); int k = (a * 360/90.0)*180.0/3.14159; int p = (int)(l * 100);
+        //int col = (k & 1) ? (int)((l*100)+(k & 1)) & 15;
+        int col = y & 1 ? k & 15 : p & 15;
+        setPixel(x,y,col);
       }
       if (kbhit()) {getch(); break;}
     }
+    {for (int i = 0; i < POINTCOUNT; i++) {
+      setPixel(pointX[i], pointY[i], rand() & 15);
+    }}
     while (!kbhit()) {;}
     getch();
   }
