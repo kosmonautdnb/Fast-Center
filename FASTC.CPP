@@ -405,8 +405,14 @@ int main(int argc, const char *argv[]) {
       for (int i = 0; i < POINTCOUNT; i++) {
         double xd = pointX[i] - pX;
         double yd = pointY[i] - pY;
-        xd = xd / (fabs(xd)+1);
-        yd = yd / (fabs(yd)+1);
+        if (true) {
+          xd = xd / (fabs(xd)+1);
+          yd = yd / (fabs(yd)+1);
+        } else {
+          double l = sqrt(xd*xd+yd*yd);
+          xd = xd / (l+1);
+          yd = yd / (l+1);
+        }
         xp += xd; yp += yd; w++;
       }
       if (w != 0) {xp /= w; yp /= w;}
@@ -428,24 +434,32 @@ int main(int argc, const char *argv[]) {
   }
   getch();
 
-  for (int y = 0; y < 480; y++) {
-    for (int x = 0; x < 640; x++) {
-      w = 0; xp = 0; yp = 0;
-      for (int i = 0; i < POINTCOUNT; i++) {
-        double xd = pointX[i] - x;
-        double yd = pointY[i] - y;
-        xd = xd / (fabs(xd)+1);
-        yd = yd / (fabs(yd)+1);
-        xp += xd; yp += yd; w++;
+  for (int k = 0; k < 2; k++) {
+    for (int y = 0; y < 480; y++) {
+      for (int x = 0; x < 640; x++) {
+        w = 0; xp = 0; yp = 0;
+        for (int i = 0; i < POINTCOUNT; i++) {
+          double xd = pointX[i] - x;
+          double yd = pointY[i] - y;
+          if (k == 0) {
+            xd = xd / (fabs(xd)+1);
+            yd = yd / (fabs(yd)+1);
+          } else {
+            double l = sqrt(xd*xd+yd*yd);
+            xd = xd / (l+1);
+            yd = yd / (l+1);
+          }
+          xp += xd; yp += yd; w++;
+        }
+        if (w != 0) {xp /= w; yp /= w;}
+        double l = sqrt(xp * xp + yp * yp);
+        setPixel(x,y,(int)(l*100) & 15);
       }
-      if (w != 0) {xp /= w; yp /= w;}
-      double l = sqrt(xp * xp + yp * yp);
-      setPixel(x,y,(int)(l*100) & 15);
+      if (kbhit()) {getch(); break;}
     }
-    if (kbhit()) {getch(); break;}
+    while (!kbhit()) {;}
+    getch();
   }
-  while (!kbhit()) {;}
-  getch();
 
   setBiosGraphicsMode(mode);
 
