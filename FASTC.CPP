@@ -425,7 +425,7 @@ int main(int argc, const char *argv[]) {
     if (true) {
       double cx2 = pX, cy2 = pY;
       double ld = 0, ax = 0, ay = 0;
-      for (double a = 0; a < 360.0; a += 45.0/20.0) {
+      for (double a = 0; a < 360.0; a += 2.0) {
         double xd3 = sin(a*3.14159/180.0);
         double yd3 = cos(a*3.14159/180.0);
         double w,xp,yp,pX,pY;
@@ -454,8 +454,23 @@ int main(int argc, const char *argv[]) {
       }
       double l = sqrt(ax*ax+ay*ay);
       if (l != 0) {ax /= l; ay /= l;}
-      for (int i = -sqrt(640*480); i < sqrt(640*480); i++) {
-        setPixel0(pX+ax*i,pY+ay*i,15);
+      for (int j = -sqrt(640*480); j < sqrt(640*480); j++) {
+        cx2 = pX+ax*j;
+        cy2 = pY+ay*j;
+        xp = 0; yp = 0; w = 0;
+        for (int i = 0; i < POINTCOUNT; i++) {
+          double xd = pointX[i] - cx2;
+          double yd = pointY[i] - cy2;
+          double d = sqrt(xd*xd+yd*yd);
+          xd = xd / (d+1);
+          yd = yd / (d+1);
+          xp += xd; yp += yd; w++;
+        }
+        if (w != 0) {xp /= w; yp /= w;}
+
+        double k = sqrt(xp*xp+yp*yp);
+        if (j < 0) {k *= -1;}
+        setPixel0(cx2,cy2,(int)(k*100) & 15);
       }
     }
 
