@@ -400,6 +400,7 @@ int main(int argc, const char *argv[]) {
     {for (int j = -10; j <= 10; j++) {setPixel2(cX+j, cY, 1);setPixel2(cX, cY+j, 1);}} // 2d average
     {for (int j = -10; j <= 10; j++) {setPixel2(mX+j, mY, 4);setPixel2(mX, mY+j, 4);}} // 3d center
 
+    // the algorithm
     {for (int j = 0; j < 1000; j++) {
       w = 0; xp = 0; yp = 0;
       for (int i = 0; i < POINTCOUNT; i++) {
@@ -419,6 +420,44 @@ int main(int argc, const char *argv[]) {
       pX += xp; pY += yp;
       setPixel0(pX,pY,15);
     }}
+
+    // this paints the "Sichtachse" notice that the inferior and slower "sqrt()" function is used here
+    if (true) {
+      double cx2 = pX, cy2 = pY;
+      double ld = 0, ax = 0, ay = 0;
+      for (double a = 0; a < 360.0; a += 45.0/20.0) {
+        double xd3 = sin(a*3.14159/180.0);
+        double yd3 = cos(a*3.14159/180.0);
+        double w,xp,yp,pX,pY;
+        w = 0; xp = 0; yp = 0;
+        pX = cx2; pY = cy2;
+        for (int i = 0; i < POINTCOUNT; i++) {
+          double xd2 = pointX[i] - cx2;
+          double yd2 = pointY[i] - cy2;
+          double d2 = xd3*xd2+yd3*yd2;
+          if (d2 >= 0) {
+            double xd = pointX[i] - pX;
+            double yd = pointY[i] - pY;
+            double d = sqrt(xd*xd+yd*yd);
+            xd = xd / (d+1);
+            yd = yd / (d+1);
+            xp += xd; yp += yd; w++;
+          }
+        }
+        if (w != 0) {xp /= w; yp /= w;}
+        double l = sqrt(xp*xp+yp*yp);
+        if (l > ld) {
+          ax = xp;
+          ay = yp;
+          ld = l;
+        }
+      }
+      double l = sqrt(ax*ax+ay*ay);
+      if (l != 0) {ax /= l; ay /= l;}
+      for (int i = -sqrt(640*480); i < sqrt(640*480); i++) {
+        setPixel0(pX+ax*i,pY+ay*i,15);
+      }
+    }
 
     {for (int j = -10; j <= 10; j++) {setPixel2(pX+j, pY-j, 15);setPixel2(pX+j, pY+j, 15);}}
 
